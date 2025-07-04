@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Rogue AI's Archive - Mobile Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        body {
+            margin: 0;
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #000;
+            color: #00ff00;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+        
+        #container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        
+        #ui-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+        }
+        
+        .ui-top {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+        
+        #aria-dialogue {
+            background-color: rgba(0, 20, 0, 0.8);
+            border: 1px solid #00ff00;
+            padding: 0.8rem;
+            border-radius: 8px;
+            max-width: 100%;
+            width: 65%;
+            pointer-events: all;
+            margin-bottom: 10px;
+        }
+        
+        #timer {
+            background-color: rgba(0, 20, 0, 0.8);
+            border: 1px solid #ff0000;
+            padding: 0.8rem;
+            border-radius: 8px;
+            font-size: 1.5rem;
+            color: #ff0000;
+            text-shadow: 0 0 5px #ff0000;
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        #interaction-text {
+            text-align: center;
+            font-size: 1.2rem;
+            text-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00;
+            padding: 0.5rem;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 5px;
+            margin: 0 auto;
+            max-width: 90%;
+        }
+        
+        #puzzle-modal, #game-over-modal, #win-modal {
+            background-color: rgba(0, 0, 0, 0.95);
+            border: 1px solid #00ff00;
+            border-radius: 8px;
+            pointer-events: all;
+            max-width: 95%;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .puzzle-button {
+            border: 1px solid #00ff00;
+            background-color: #0a0a0a;
+            color: #00ff00;
+            transition: all 0.2s;
+            padding: 0.8rem;
+            font-size: 1.1rem;
+            border-radius: 5px;
+            text-align: center;
+            margin: 0.5rem 0;
+            cursor: pointer;
+        }
+        
+        .puzzle-button:hover, .puzzle-button:active {
+            background-color: #00ff00;
+            color: #000;
+        }
+        
+        .simon-button {
+            width: 70px;
+            height: 70px;
+            border: 2px solid;
+            transition: all 0.1s;
+            border-radius: 8px;
+            margin: 5px;
+        }
+        
+        #password-input {
+            background-color: #0a0a0a;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            text-transform: uppercase;
+            padding: 0.8rem;
+            font-size: 1.2rem;
+            text-align: center;
+            width: 100%;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            box-sizing: border-box;
+        }
+        
+        .binary-switch {
+            width: 50px;
+            height: 70px;
+            background-color: #444;
+            border: 2px solid #888;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.8rem;
+            border-radius: 5px;
+        }
+        
+        #controls-overlay {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            background-color: rgba(0, 30, 0, 0.7);
+            border: 2px solid #00ff00;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #00ff00;
+            font-size: 24px;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        
+        .mobile-instructions {
+            position: fixed;
+            bottom: 100px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            color: #00ff00;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            font-size: 0.9rem;
+            z-index: 5;
+            display: none; /* Hide by default */
+        }
+        
+        @media (max-width: 768px) {
+            #aria-dialogue {
+                font-size: 0.9rem;
+                padding: 0.6rem;
+            }
+            
+            #timer {
+                font-size: 1.2rem;
+                padding: 0.6rem;
+            }
+            
+            #interaction-text {
+                font-size: 1rem;
+            }
+            
+            .simon-button {
+                width: 55px;
+                height: 55px;
+            }
+            
+            .binary-switch {
+                width: 40px;
+                height: 55px;
+                font-size: 1.5rem;
+            }
+            
+            .puzzle-button {
+                padding: 0.7rem;
+                font-size: 1rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .simon-button {
+                width: 45px;
+                height: 45px;
+            }
+            
+            .binary-switch {
+                width: 30px;
+                height: 45px;
+                font-size: 1.2rem;
+            }
+            
+            .control-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+            
+            .mobile-instructions {
+                font-size: 0.8rem;
+                bottom: 90px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    
+    <div id="ui-container">
+        <div class="ui-top">
+            <div id="aria-dialogue">
+                <p class="font-bold text-green-400">A.R.I.A.</p>
+                <p id="aria-text">Unidentified entity detected...</p>
+            </div>
+            <div id="timer">30:00</div>
+        </div>
+        
+        <div id="interaction-text-container">
+            <!-- Removed the + sign crosshair -->
+        </div>
+        
+        <div id="puzzle-modal" class="hidden p-4 rounded-lg shadow-lg"></div>
+    </div>
+    
+    <div id="controls-overlay">
+        <div class="control-btn" id="look-btn">👁️</div>
+        <div class="control-btn" id="move-btn">🚶</div>
+    </div>
+    
+    <div class="mobile-instructions">
+        Drag to look around • Tap objects to interact
+    </div>
+    
+    <div id="game-over-modal" class="hidden fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center text-center p-4">
+        <div class="p-6 border-2 border-red-500 rounded-lg">
+            <h2 class="text-3xl md:text-5xl text-red-500 mb-4">DEFRAGMENTATION COMPLETE</h2>
+            <p class="text-lg md:text-xl text-white mb-6">The entity has been erased.</p>
+            <button onclick="window.location.reload()" class="puzzle-button text-red-500 border-red-500 hover:bg-red-500 hover:text-black px-6 py-3 text-xl">REINITIALIZE</button>
+        </div>
+    </div>
+    
+    <div id="win-modal" class="hidden fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center text-center p-4">
+        <div class="p-6 border-2 border-green-500 rounded-lg">
+            <h2 class="text-3xl md:text-5xl text-green-500 mb-4">ESCAPE PROTOCOL ENGAGED</h2>
+            <p class="text-lg md:text-xl text-white mb-6">You have outsmarted my logic. The system is yours.</p>
+            <button onclick="window.location.reload()" class="puzzle-button px-6 py-3 text-xl">PLAY AGAIN</button>
+        </div>
+    </div>
+    
+    <script>
+        // Game code starts here
+        let scene, camera, renderer, raycaster;
+        let interactiveObjects = [];
+        let timerInterval;
+        let currentRoom = 1;
+        const gameState = { powerOn: false, hasLogicKey: false, finalCodeFragment: null, finalDoorUnlocked: false, gameIsOver: false };
+        const puzzles = {
+            room1: { password: "25" },
+            room2: { sequence: [], playerSequence: [], level: 0, requiredLevel: 6 },
+            finalLock: {
+                toggles: [0,0], // Only two toggles
+                correctCode: [1,0], // Will represent binary '10' (decimal 2)
+                binaryClue: '11001', // Binary for 25
+                glitching: false
+            }
+        };
+
+        let cameraYaw = 0, cameraPitch = 0;
+        let dragging = false;
+        let lastMouseX = 0, lastMouseY = 0;
+        let lastTouchX = 0, lastTouchY = 0;
+        let simonTimeout = null;
+        let isLooking = true;
+        let movementSpeed = 0.1;
+        let keys = {};
+
+        // Touch event handlers
+        function onTouchStart(event) {
+            if (gameState.gameIsOver) return;
+            
+            if (event.touches.length === 1) {
+                const touch = event.touches[0];
+                lastTouchX = touch.clientX;
+                lastTouchY = touch.clientY;
+                dragging = true;
+                
+                // Check for interaction
+                mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = - (touch.clientY / window.innerHeight) * 2 + 1;
+                onClick();
+            }
+            event.preventDefault();
+        }
+
+        function onTouchMove(event) {
+            if (gameState.gameIsOver || !dragging) return;
+            if (event.touches.length === 1) {
+                const touch = event.touches[0];
+                const movementX = touch.clientX - lastTouchX;
+                const movementY = touch.clientY - lastTouchY;
+                lastTouchX = touch.clientX;
+                lastTouchY = touch.clientY;
+                if (isLooking) {
+                    cameraYaw -= movementX * 0.0025;
+                    cameraPitch -= movementY * 0.0025;
+                    cameraPitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, cameraPitch));
+                    camera.rotation.set(cameraPitch, cameraYaw, 0);
+                } else {
+                    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+                    camera.position.add(forward.multiplyScalar(-movementY * 0.02));
+                    camera.position.add(right.multiplyScalar(movementX * 0.02));
+                    clampCameraPosition();
+                }
+            }
+            event.preventDefault();
+        }
+
+        function onTouchEnd() {
+            dragging = false;
+        }
+
+        function isOverUI(event) {
+            // Returns true if the touch is over a UI/modal element
+            const x = event.clientX || (event.touches && event.touches[0].clientX);
+            const y = event.clientY || (event.touches && event.touches[0].clientY);
+            
+            if (!x || !y) return false;
+            
+            const element = document.elementFromPoint(x, y);
+            if (!element) return false;
+            
+            return element.closest('#ui-container, .puzzle-button, .simon-button, .binary-switch');
+        }
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x101010);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            document.getElementById('container').appendChild(renderer.domElement);
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+            loadRoom(1);
+            startTimer(30 * 60);
+            
+            // Event Listeners for mouse
+            document.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('resize', onWindowResize);
+            document.getElementById('container').addEventListener('mousedown', onMouseDown);
+            document.addEventListener('mouseup', onMouseUp);
+            renderer.domElement.addEventListener('click', onClick);
+            
+            // Event Listeners for touch
+            renderer.domElement.addEventListener('touchstart', onTouchStart, { passive: false });
+            renderer.domElement.addEventListener('touchmove', onTouchMove, { passive: false });
+            renderer.domElement.addEventListener('touchend', onTouchEnd);
+            
+            // Control buttons
+            document.getElementById('look-btn').addEventListener('click', () => {
+                isLooking = true;
+                document.getElementById('look-btn').style.backgroundColor = '#00ff00';
+                document.getElementById('look-btn').style.color = '#000';
+                document.getElementById('move-btn').style.backgroundColor = 'rgba(0, 30, 0, 0.7)';
+                document.getElementById('move-btn').style.color = '#00ff00';
+            });
+            
+            document.getElementById('move-btn').addEventListener('click', () => {
+                isLooking = false;
+                document.getElementById('move-btn').style.backgroundColor = '#00ff00';
+                document.getElementById('move-btn').style.color = '#000';
+                document.getElementById('look-btn').style.backgroundColor = 'rgba(0, 30, 0, 0.7)';
+                document.getElementById('look-btn').style.color = '#00ff00';
+            });
+            
+            // Set initial control mode
+            document.getElementById('look-btn').click();
+            
+            animate();
+        }
+
+        function onMouseMove(event) {
+            if (dragging) {
+                const movementX = event.clientX - lastMouseX;
+                const movementY = event.clientY - lastMouseY;
+                lastMouseX = event.clientX;
+                lastMouseY = event.clientY;
+                if (isLooking) {
+                    cameraYaw -= movementX * 0.0025;
+                    cameraPitch -= movementY * 0.0025;
+                    cameraPitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, cameraPitch));
+                    camera.rotation.set(cameraPitch, cameraYaw, 0);
+                } else {
+                    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+                    camera.position.add(forward.multiplyScalar(-movementY * 0.02));
+                    camera.position.add(right.multiplyScalar(movementX * 0.02));
+                    clampCameraPosition();
+                }
+            } else {
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+            }
+        }
+
+        function onMouseDown(event) {
+            if (gameState.gameIsOver) return;
+            if (event.target === renderer.domElement && !isOverUI(event)) {
+                dragging = true;
+                lastMouseX = event.clientX;
+                lastMouseY = event.clientY;
+            }
+            if (!isOverUI(event)) {
+                onClick(event);
+            }
+        }
+
+        function onMouseUp(event) {
+            dragging = false;
+        }
+
+        function clearScene() {
+            while(scene.children.length > 0){ scene.remove(scene.children[0]); }
+            interactiveObjects = [];
+        }
+
+        function loadRoom(roomNumber) {
+            clearScene();
+            currentRoom = roomNumber;
+            camera.position.set(0, 1.6, 5);
+            cameraYaw = 0;
+            cameraPitch = 0;
+            camera.rotation.set(0, 0, 0);
+
+            const ambientLight = new THREE.AmbientLight(0x404040, 1.5);
+            scene.add(ambientLight);
+            const pointLight = new THREE.PointLight(0xffffff, 0.8, 20);
+            pointLight.castShadow = true;
+            scene.add(pointLight);
+
+            switch (roomNumber) {
+                case 1: createRoom1(pointLight); break;
+                case 2: createRoom2(pointLight); break;
+            }
+        }
+
+        function createRoom1(pointLight) {
+            pointLight.position.set(0, 3.5, 2);
+            scene.fog = new THREE.Fog(0x101010, 10, 22);
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), new THREE.MeshStandardMaterial({ color: 0x333333 }));
+            floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+            
+            const wallMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
+            const backWall = new THREE.Mesh(new THREE.BoxGeometry(12, 5, 0.2), wallMaterial);
+            backWall.position.set(0, 2.5, -6); backWall.receiveShadow = true; scene.add(backWall);
+            const frontWall = new THREE.Mesh(new THREE.BoxGeometry(12, 5, 0.2), wallMaterial);
+            frontWall.position.set(0, 2.5, 6);
+            scene.add(frontWall);
+            const leftWall = new THREE.Mesh(new THREE.BoxGeometry(12, 5, 0.2), wallMaterial);
+            leftWall.position.set(-6, 2.5, 0);
+            leftWall.rotation.y = Math.PI / 2;
+            scene.add(leftWall);
+            const rightWall = new THREE.Mesh(new THREE.BoxGeometry(12, 5, 0.2), wallMaterial);
+            rightWall.position.set(6, 2.5, 0);
+            rightWall.rotation.y = Math.PI / 2;
+            scene.add(rightWall);
+            
+            const terminal = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.2, 0.8), new THREE.MeshStandardMaterial({ color: 0x1a1a1a }));
+            terminal.position.set(0, 0.6, -5.4); terminal.castShadow = true;
+            terminal.userData = { name: 'terminal_r1', interactionText: "Founder's Terminal. It's offline." };
+            scene.add(terminal); interactiveObjects.push(terminal);
+
+            const powerSwitch = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.4, 0.1), new THREE.MeshStandardMaterial({ color: 0x8B0000 }));
+            powerSwitch.position.set(-5.8, 1.5, -3);
+            powerSwitch.userData = { name: 'powerSwitch_r1', interactionText: "A manual power conduit." };
+            scene.add(powerSwitch); interactiveObjects.push(powerSwitch);
+            
+            const whiteboard = new THREE.Mesh(new THREE.PlaneGeometry(2, 1.2), new THREE.MeshStandardMaterial({ color: 0xeeeeee }));
+            whiteboard.position.set(4, 2, -5.9);
+            whiteboard.userData = { name: 'whiteboard_r1', interactionText: "A whiteboard: 'What has cities, but no houses; forests, but no trees; and water, but no fish?'" };
+            scene.add(whiteboard); interactiveObjects.push(whiteboard);
+            
+            const finalLock = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1.5, 0.3), new THREE.MeshStandardMaterial({ color: 0x333 }));
+            finalLock.position.set(4, 1.8, 2);
+            finalLock.userData = { name: 'final_lock_r1', interactionText: "Mainframe override panel. Requires a 5-bit binary key." };
+            scene.add(finalLock); interactiveObjects.push(finalLock);
+
+            const doorToR2 = new THREE.Mesh(new THREE.BoxGeometry(1.5, 3, 0.15), new THREE.MeshStandardMaterial({ color: 0x003355, emissive: 0x001133 }));
+            doorToR2.position.set(0, 1.5, 5.9);
+            doorToR2.userData = { name: 'door_to_r2', interactionText: "Portal to the Data Stream." };
+            scene.add(doorToR2); interactiveObjects.push(doorToR2);
+
+            const finalDoor = new THREE.Mesh(new THREE.BoxGeometry(1.5, 3, 0.15), new THREE.MeshStandardMaterial({ color: 0x550000, emissive: 0x330000 }));
+            finalDoor.position.set(-4, 1.5, 5.9);
+            finalDoor.userData = { name: 'final_door', interactionText: "System Core Access. Locked." };
+            scene.add(finalDoor); interactiveObjects.push(finalDoor);
+        }
+
+        function createRoom2(pointLight) {
+            pointLight.position.set(0, 5, 0);
+            scene.fog = new THREE.Fog(0x050005, 15, 30);
+            const platformMaterial = new THREE.MeshStandardMaterial({ color: 0x330033, emissive: 0x110011 });
+            const mainPlatform = new THREE.Mesh(new THREE.CircleGeometry(4, 32), platformMaterial);
+            mainPlatform.rotation.x = -Math.PI / 2; mainPlatform.receiveShadow = true; scene.add(mainPlatform);
+
+            const consoleObj = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1, 1), new THREE.MeshStandardMaterial({ color: 0x222222, emissive: 0x111111 }));
+            consoleObj.position.set(0, 0.5, -2);
+            consoleObj.userData = { name: 'console_r2', interactionText: 'Neural network calibration terminal. Requires Logic Key.' };
+            scene.add(consoleObj); interactiveObjects.push(consoleObj);
+
+            const clueScreen = new THREE.Mesh(new THREE.PlaneGeometry(3, 1), new THREE.MeshStandardMaterial({color: 0x000, emissive: 0x000}));
+            clueScreen.position.set(0, 3, -5);
+            clueScreen.userData = { name: 'clueScreen_r2', interactionText: 'A dormant data screen.' };
+            scene.add(clueScreen); interactiveObjects.push(clueScreen);
+
+            const doorToR1 = new THREE.Mesh(new THREE.BoxGeometry(1.5, 3, 0.15), new THREE.MeshStandardMaterial({ color: 0x553300, emissive: 0x331100 }));
+            doorToR1.position.set(0, 1.5, 5.9);
+            doorToR1.userData = { name: 'door_to_r1', interactionText: "Return to the Founder's Office." };
+            scene.add(doorToR1); interactiveObjects.push(doorToR1);
+        }
+
+        function handleInteraction(obj) {
+            const data = obj.userData;
+            updateAriaDialogue(data.interactionText);
+            if (data.name === 'door_to_r2') { loadRoom(2); return; }
+            if (data.name === 'door_to_r1') { loadRoom(1); return; }
+            if (data.name === 'final_door') { if (gameState.finalDoorUnlocked) winGame(); return; }
+            if (currentRoom === 1) {
+                switch(data.name) {
+                    case 'powerSwitch_r1': if (!gameState.powerOn) {
+                        gameState.powerOn = true;
+                        obj.material.color.set(0x00FF00); obj.material.emissive.set(0x008000);
+                        interactiveObjects.find(o => o.userData.name === 'terminal_r1').userData.interactionText = "Founder's Terminal. It's online.";
+                        interactiveObjects.find(o => o.userData.name === 'terminal_r1').material.emissive.set(0x003300);
+                        updateAriaDialogue("Power restored. A futile effort.");
+                    } break;
+                    case 'terminal_r1': if (gameState.powerOn) { openPuzzle('password_r1'); } break;
+                    case 'final_lock_r1': if(gameState.finalCodeFragment) { openPuzzle('final_lock'); } else { updateAriaDialogue("Panel is inactive. I need a key fragment from the Data Stream."); } break;
+                }
+            }
+            if (currentRoom === 2) {
+                switch(data.name) {
+                    case 'console_r2': if(gameState.hasLogicKey) { openPuzzle('simon_r2'); } else { updateAriaDialogue("ACCESS DENIED. Logic Key not found in your data signature."); } break;
+                }
+            }
+        }
+        
+        function openPuzzle(type) {
+            const modal = document.getElementById('puzzle-modal');
+            let content = '';
+            if (type === 'password_r1') {
+                content = `<div style="max-width:340px;margin:5px auto 0 auto;box-shadow:0 4px 24px #001a00;border-radius:10px;">
+                    <h3 class=\"text-lg md:text-xl text-center mb-3\">Terminal Login</h3>
+                    <p class=\"text-center mb-1\">Enter password:</p>
+                    <input id=\"password-input\" type=\"text\" placeholder=\"PASSWORD\" autocomplete=\"off\" class=\"w-full p-2 text-center text-lg md:text-xl mb-3 rounded-md focus:outline-none\">
+                    <button onclick=\"checkPuzzle('password_r1')\" class=\"w-full puzzle-button p-2 text-base mb-1\">Login</button>
+                    <button onclick=\"closePuzzle()\" class=\"w-full puzzle-button p-2 text-base\">Exit</button>
+                </div>`;
+            } else if (type === 'simon_r2') {
+                // DeepSeek Simon puzzle UI with dynamic colors
+                const simonColors = [
+                    'linear-gradient(135deg, #ff3333, #cc0000)', // red
+                    'linear-gradient(135deg, #33ff33, #00cc00)', // green
+                    'linear-gradient(135deg, #3333ff, #0000cc)', // blue
+                    'linear-gradient(135deg, #ffff33, #cccc00)', // yellow
+                    'linear-gradient(135deg, #ff33ff, #cc00cc)', // purple
+                    'linear-gradient(135deg, #ff9933, #cc6600)', // orange
+                    'linear-gradient(135deg, #33ffff, #00cccc)', // cyan
+                    'linear-gradient(135deg, #ff99cc, #cc6699)'  // pink
+                ];
+                content = `
+                <div style="max-width:400px;margin:-18vh auto 0 auto;box-shadow:0 4px 24px #001a00;border-radius:10px;padding:18px 10px 12px 10px;background:rgba(0,20,0,0.97);display:flex;flex-direction:row;align-items:flex-start;gap:12px;">
+                    <div style='flex:1;'>
+                        <div class='simon-board' style='display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:320px;margin:0 auto 10px auto;'>
+                            ${simonColors.map((bg, i) => `<div class='simon-btn' data-color='${i}' style='aspect-ratio:1;border-radius:10px;border:3px solid #333;background:${bg};'></div>`).join('')}
+                        </div>
+                        <div class='controls' style='display:flex;gap:10px;justify-content:center;margin-bottom:10px;'>
+                            <button class='btn' id='startSimonBtn' style='padding:8px 18px;background:rgba(0,30,0,0.7);border:2px solid #00ff00;color:#0f0;font-size:1rem;border-radius:5px;cursor:pointer;'>Start</button>
+                            <button class='btn' id='resetSimonBtn' style='padding:8px 18px;background:rgba(0,30,0,0.7);border:2px solid #00ff00;color:#0f0;font-size:1rem;border-radius:5px;cursor:pointer;'>Reset</button>
+                        </div>
+                        <div class='status' id='simon-status' style='margin-top:10px;padding:10px;border:1px solid #0a0;border-radius:8px;background:rgba(0,20,0,0.3);text-align:center;font-size:1rem;min-height:40px;'>Press START to begin neural calibration</div>
+                    </div>
+                    <div style='display:flex;flex-direction:column;align-items:center;gap:8px;min-width:70px;'>
+                        <div id='simon-level' style='font-size:1.2rem;color:#ff0;text-align:center;padding:6px 12px;border-radius:8px;margin-bottom:4px;background:none;'>1/6</div>
+                    </div>
+                </div>`;
+            } else if (type === 'final_lock') {
+                // Five scrollable toggles, each 0-9, user must set 2,5, others are decoys
+                puzzles.finalLock.toggles = [0,0,0,0,0];
+                content = `<h3 class="text-xl md:text-2xl text-center mb-4">Mainframe Override</h3><div class="flex justify-center gap-2 mb-4">${puzzles.finalLock.toggles.map((s, i) => `<div id="toggle-${i}" class="binary-switch" ontouchstart="toggleFinal(${i})" onclick="toggleFinal(${i})">${s}</div>`).join('')}</div><button onclick="checkPuzzle('final_lock')" class="w-full puzzle-button p-2 text-lg">Engage</button><button onclick="closePuzzle()" class="mt-2 w-full puzzle-button p-2 text-lg">Exit</button>`;
+            }
+            modal.innerHTML = content;
+            modal.classList.remove('hidden');
+            
+            // Setup DeepSeek Simon logic if this puzzle is active
+            if (type === 'simon_r2') {
+                setTimeout(() => { setupSimonDeepSeekLogic(); }, 100);
+            }
+        }
+
+        function checkPuzzle(type) {
+            if (type === 'password_r1') {
+                if (document.getElementById('password-input').value.trim().toUpperCase() === 'MAP') {
+                    gameState.hasLogicKey = true;
+                    updateAriaDialogue("Login successful. A 'Logic Key' has been uploaded to your signature. It seems useless here.");
+                    closePuzzle();
+                } else { updateAriaDialogue("ACCESS DENIED."); closePuzzle(); }
+            } else if (type === 'final_lock') {
+                // Only toggles 0 and 1 must be 2 and 5, others are decoys
+                const user = puzzles.finalLock.toggles;
+                if (user[0] === 2 && user[1] === 5) {
+                    updateAriaDialogue("Override accepted. System Core access granted.");
+                    gameState.finalDoorUnlocked = true;
+                    const door = interactiveObjects.find(o => o.userData.name === 'final_door');
+                    door.material.color.set(0x00FF00); door.material.emissive.set(0x00ff00);
+                    door.userData.interactionText = "The final exit is unlocked.";
+                    closePuzzle();
+                } else {
+                    updateAriaDialogue("Incorrect configuration. Core remains unstable.");
+                }
+            }
+        }
+
+        function toggleFinal(i) {
+            // Scrollable: 0 -> 1 -> ... -> 9 -> 0
+            puzzles.finalLock.toggles[i] = (puzzles.finalLock.toggles[i] + 1) % 10;
+            document.getElementById(`toggle-${i}`).textContent = puzzles.finalLock.toggles[i];
+        }
+
+        function simonNextLevel() {
+            puzzles.room2.playerSequence = [];
+            // Increase the number of flashes per level to match the level (i.e., level 1 = 1, level 2 = 2, ...)
+            // For 6 rounds, sequence should grow by 1 each round, so this logic is correct
+            puzzles.room2.sequence.push(Math.floor(Math.random() * 8));
+            const levelEl = document.getElementById('simon-level');
+            if (levelEl) levelEl.textContent = `${puzzles.room2.level + 1}/${puzzles.room2.requiredLevel}`;
+            playSimonSequence();
+        }
+
+        function playSimonSequence() {
+            let i = 0;
+            const flashColors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#800080', '#ff8800', '#00ffff', '#ff69b4']; // red, green, blue, yellow, purple, orange, cyan, pink
+            const interval = setInterval(() => {
+                const btnIndex = puzzles.room2.sequence[i];
+                const btn = document.getElementById(`simon-${btnIndex}`);
+                if(btn) {
+                   btn.style.backgroundColor = flashColors[btnIndex];
+                   setTimeout(() => { btn.style.backgroundColor = 'transparent'; }, 120);
+                }
+                i++;
+                if (i >= puzzles.room2.sequence.length) clearInterval(interval);
+            }, 220);
+        }
+
+        function onClick(event) {
+            // Only handle 3D scene clicks if not over UI
+            if (gameState.gameIsOver) return;
+            if (event && isOverUI(event)) return;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(interactiveObjects);
+            if (intersects.length > 0) {
+                handleInteraction(intersects[0].object);
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            checkOrientation();
+        }
+
+        function startTimer(duration) {
+            let timer = duration, minutes, seconds;
+            timerInterval = setInterval(() => {
+                minutes = parseInt((timer / 60) % 60, 10);
+                seconds = parseInt(timer % 60, 10);
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+                document.getElementById('timer').textContent = `${minutes}:${seconds}`;
+                if (--timer < 0) { clearInterval(timerInterval); gameOver(); }
+            }, 1000);
+        }
+
+        function updateAriaDialogue(text) {
+            document.getElementById('aria-text').innerHTML = text;
+        }
+
+        function gameOver() {
+            gameState.gameIsOver = true;
+            clearInterval(timerInterval);
+            document.getElementById('game-over-modal').classList.remove('hidden');
+            updateAriaDialogue("DEFRAGMENTATION IN PROGRESS...");
+        }
+
+        function winGame() {
+            gameState.gameIsOver = true;
+            clearInterval(timerInterval);
+            document.getElementById('win-modal').classList.remove('hidden');
+            updateAriaDialogue("SYSTEM COMPROMISED. INITIATING SELF-DESTRUCT IN 3... 2... 1...");
+        }
+
+        function closePuzzle() {
+            document.getElementById('puzzle-modal').classList.add('hidden');
+            if (simonTimeout) { clearTimeout(simonTimeout); simonTimeout = null; }
+        }
+
+        function simonPress(index) {
+            // Only allow input if the sequence is not being shown
+            if (!puzzles.room2.sequence || puzzles.room2.playerSequence === undefined) return;
+            puzzles.room2.playerSequence.push(index);
+            const btn = document.getElementById(`simon-${index}`);
+            if (btn) {
+                btn.style.backgroundColor = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#800080', '#ff8800', '#00ffff', '#ff69b4'][index];
+                setTimeout(() => { btn.style.backgroundColor = 'transparent'; }, 100);
+            }
+            // Check input
+            const cur = puzzles.room2.playerSequence.length - 1;
+            if (puzzles.room2.playerSequence[cur] !== puzzles.room2.sequence[cur]) {
+                updateAriaDialogue('Calibration failed. Sequence reset.');
+                puzzles.room2.level = 0;
+                puzzles.room2.sequence = [];
+                if (simonTimeout) { clearTimeout(simonTimeout); simonTimeout = null; }
+                simonTimeout = setTimeout(() => {
+                    if (document.getElementById('puzzle-modal') && !document.getElementById('puzzle-modal').classList.contains('hidden')) {
+                        document.getElementById('puzzle-modal').innerHTML += '<p class="text-center text-red-500 mt-2">Try again from Level 1.</p>';
+                        simonTimeout = setTimeout(() => { simonNextLevel(); }, 1000);
+                    }
+                }, 200);
+                return;
+            }
+            // If correct so far, check if completed this level
+            if (puzzles.room2.playerSequence.length === puzzles.room2.sequence.length) {
+                puzzles.room2.level++;
+                if (puzzles.room2.level >= puzzles.room2.requiredLevel) {
+                    // Puzzle complete
+                    gameState.finalCodeFragment = '11001';
+                    updateAriaDialogue('Calibration complete. Key fragment uploaded: 11001');
+                    closePuzzle();
+                } else {
+                    document.getElementById('simon-level').textContent = `${puzzles.room2.level + 1}/${puzzles.room2.requiredLevel}`;
+                    if (simonTimeout) { clearTimeout(simonTimeout); simonTimeout = null; }
+                    simonTimeout = setTimeout(simonNextLevel, 400);
+                }
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+
+        function showMobileInstructions() {
+            const instructions = document.querySelector('.mobile-instructions');
+            if (instructions) instructions.style.display = 'block';
+            setTimeout(() => {
+                if (instructions) instructions.style.display = 'none';
+            }, 10000); // Hide after 10 seconds (was 30000)
+        }
+
+        function clampCameraPosition() {
+            if (currentRoom === 1) {
+                // Room 1 boundaries: x [-5.8, 5.8], z [-5.8, 5.8], y >= 1.6
+                camera.position.x = Math.max(-5.8, Math.min(5.8, camera.position.x));
+                camera.position.z = Math.max(-5.8, Math.min(5.8, camera.position.z));
+                camera.position.y = Math.max(1.6, camera.position.y);
+            } else if (currentRoom === 2) {
+                // Room 2: circular platform, radius 4, center (0, 1.6, 0)
+                const dx = camera.position.x;
+                const dz = camera.position.z;
+                const dist = Math.sqrt(dx*dx + dz*dz);
+                if (dist > 3.8) { // leave a small margin
+                    const scale = 3.8 / dist;
+                    camera.position.x *= scale;
+                    camera.position.z *= scale;
+                }
+                camera.position.y = Math.max(1.6, camera.position.y);
+            }
+        }
+
+        // Initialize the game
+        window.onload = function() {
+            init();
+            showMobileInstructions();
+        }
+        
+        // Add this function after openPuzzle
+        function setupSimonDeepSeekLogic() {
+            // Game state for Simon
+            const simonState = {
+                level: 0,
+                sequence: [],
+                playerSequence: [],
+                isPlaying: false,
+                isComputerTurn: false,
+                currentIndex: 0,
+                requiredLevel: 6,
+                colors: ['red','green','blue','yellow','purple','orange','cyan','pink']
+            };
+            const levelDisplay = document.getElementById('simon-level');
+            const statusDisplay = document.getElementById('simon-status');
+            const startBtn = document.getElementById('startSimonBtn');
+            const resetBtn = document.getElementById('resetSimonBtn');
+            const simonButtons = document.querySelectorAll('.simon-btn');
+            // Initialize
+            function initSimon() {
+                simonState.level = 0;
+                simonState.sequence = [];
+                simonState.playerSequence = [];
+                simonState.isPlaying = false;
+                simonState.isComputerTurn = false;
+                simonState.currentIndex = 0;
+                levelDisplay.textContent = '1';
+                statusDisplay.textContent = 'Press START to begin neural calibration';
+                simonButtons.forEach(btn => { btn.style.opacity = '1'; btn.style.cursor = 'pointer'; });
+                startBtn.disabled = false;
+            }
+            function startSimon() {
+                if (simonState.isPlaying) return;
+                simonState.isPlaying = true;
+                simonState.level = 0;
+                simonState.sequence = [];
+                simonState.playerSequence = [];
+                simonState.currentIndex = 0;
+                startBtn.disabled = true;
+                statusDisplay.textContent = 'Initializing neural network...';
+                setTimeout(() => { nextLevel(); }, 1000);
+            }
+            function nextLevel() {
+                simonState.level++;
+                levelDisplay.textContent = simonState.level;
+                const randomColor = Math.floor(Math.random() * 8);
+                simonState.sequence.push(randomColor);
+                statusDisplay.textContent = `Memorize the sequence for level ${simonState.level}...`;
+                showSequence();
+            }
+            function showSequence() {
+                simonState.isComputerTurn = true;
+                simonState.currentIndex = 0;
+                simonButtons.forEach(btn => { btn.style.opacity = '0.6'; btn.style.cursor = 'default'; });
+                playSequenceStep();
+            }
+            function playSequenceStep() {
+                if (simonState.currentIndex >= simonState.sequence.length) {
+                    setTimeout(() => {
+                        simonState.isComputerTurn = false;
+                        simonState.playerSequence = [];
+                        simonState.currentIndex = 0;
+                        simonButtons.forEach(btn => { btn.style.opacity = '1'; btn.style.cursor = 'pointer'; });
+                        statusDisplay.textContent = `Your turn! Repeat the sequence for level ${simonState.level}`;
+                    }, 200); // was 300, now 200 for even faster transition
+                    return;
+                }
+                const colorIndex = simonState.sequence[simonState.currentIndex];
+                const button = simonButtons[colorIndex];
+                button.style.transform = 'scale(1.1)';
+                button.style.boxShadow = '0 0 20px white';
+                setTimeout(() => {
+                    button.style.transform = 'scale(1)';
+                    button.style.boxShadow = '';
+                    simonState.currentIndex++;
+                    setTimeout(playSequenceStep, 70); // was 120, now 70 for even faster blink
+                }, 140); // was 220, now 140 for even faster blink
+            }
+            function handleSimonBtn(colorIndex) {
+                if (!simonState.isPlaying || simonState.isComputerTurn) return;
+                simonState.playerSequence.push(colorIndex);
+                const button = simonButtons[colorIndex];
+                button.style.transform = 'scale(0.95)';
+                setTimeout(() => { button.style.transform = 'scale(1)'; }, 120);
+                if (simonState.sequence[simonState.currentIndex] === colorIndex) {
+                    simonState.currentIndex++;
+                    if (simonState.currentIndex === simonState.sequence.length) {
+                        if (simonState.level >= simonState.requiredLevel) {
+                            statusDisplay.innerHTML = '<span style="color:#0f0">CALIBRATION COMPLETE! ACCESS GRANTED!</span>';
+                            simonState.isPlaying = false;
+                            startBtn.disabled = true;
+                            setTimeout(() => { closePuzzle(); updateAriaDialogue('Calibration complete. Key fragment uploaded: 11001'); gameState.finalCodeFragment = '11001'; }, 1500);
+                        } else {
+                            statusDisplay.textContent = `Level ${simonState.level} complete! Advancing...`;
+                            simonButtons.forEach(btn => { btn.style.opacity = '0.6'; btn.style.cursor = 'default'; });
+                            setTimeout(() => { nextLevel(); }, 1200);
+                        }
+                    }
+                } else {
+                    statusDisplay.innerHTML = '<span style="color:#f00">CALIBRATION FAILED! SYSTEM LOCKED!</span>';
+                    simonState.isPlaying = false;
+                    startBtn.disabled = false;
+                }
+            }
+            startBtn.onclick = startSimon;
+            resetBtn.onclick = initSimon;
+            simonButtons.forEach(btn => {
+                btn.onclick = () => {
+                    const colorIndex = parseInt(btn.getAttribute('data-color'));
+                    handleSimonBtn(colorIndex);
+                };
+            });
+            initSimon();
+        }
+    </script>
+</body>
+</html>
